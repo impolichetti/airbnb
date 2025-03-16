@@ -47,7 +47,7 @@ with app.app_context():
 
 def preprocess_data(df):
     # Clean the price column
-    df['price'] = df['price'].replace({'\$': '', ',': ''}, regex=True).astype(float)
+    df['price'] = df['price'].replace({r'\$': '', ',': ''}, regex=True).astype(float)
 
     # Drop rows where any of the key fields are NaN
     df = df.dropna(subset=['price', 'model_year', 'milage', 'fuel_type', 'transmission'])
@@ -115,24 +115,23 @@ def reload_data():
     cars_df['price'] = pd.to_numeric(cars_df['price'], errors='coerce')
 
     # Insert each row as a new record in the database
-for _, row in cars_df.iterrows():
-    new_car = CarListing(
-        price=row['price'],
-        brand=row['brand'],
-        model_year=int(row['model_year']),
-        milage=row['milage'],
-        fuel_type=row['fuel_type'],
-        transmission=row['transmission'],
-        ext_col="Unknown",  # Provide default values for missing columns
-        int_col="Unknown",
-        accident="Unknown",
-        clean_title=True
-    )
-    db.session.add(new_car)
-db.session.commit()
-
+    for _, row in cars_df.iterrows(): 
+        new_car = CarListing(
+            price=row['price'],
+            brand=row['brand'],
+            model_year=int(row['model_year']),
+            milage=row['milage'],
+            fuel_type=row['fuel_type'],
+            transmission=row['transmission'],
+            ext_col="Unknown",  # Provide default values for missing columns
+            int_col="Unknown",
+            accident="Unknown",
+            clean_title=True
+        )
+        db.session.add(new_car)
+    db.session.commit()  
     # Step 5: Preprocess and train model
-    df, encoder = preprocess_data(used_cars)
+    df, encoder = preprocess_data(cars_df)
     X = df.drop(columns='price')
     y = df['price']
     model = LinearRegression()
@@ -140,16 +139,17 @@ db.session.commit()
 
     # Step 6: Generate summary statistics
     summary = {
-        'total_cars': len(used_cars),
-        'average_price': used_cars['price'].mean(),
-        'min_price': used_cars['price'].min(),
-        'max_price': used_cars['price'].max(),
-        'average_mileage': used_cars['milage'].mean(),
-        'common_brand': used_cars['brand'].value_counts().idxmax(),
-        'common_fuel': used_cars['fuel_type'].value_counts().idxmax(),
+        'total_cars': len(cars_df),
+        'average_price': cars_df['price'].mean(),
+        'min_price': cars_df['price'].min(),
+        'max_price': cars_df['price'].max(),
+        'average_mileage': cars_df['milage'].mean(),
+        'common_brand': cars_df['brand'].value_counts().idxmax(),
+        'common_fuel': cars_df['fuel_type'].value_counts().idxmax(),
     }
 
-    return jsonify(summary)
+    return jsonify(summary)  
+
 @app.route('/predict', methods=['POST'])
 def predict():
     '''
