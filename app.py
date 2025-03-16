@@ -11,7 +11,6 @@ from io import BytesIO
 from flasgger import Swagger
 
 app = Flask(__name__)
-
 # Swagger config
 app.config['SWAGGER'] = {
     'title': 'Car Prices',
