@@ -42,8 +42,14 @@ class CarListing(db.Model):
         return f"<CarListing {self.brand} {self.model} ({self.model_year})>"
 
 # Create the database
-with app.app_context():
-    db.create_all()
+def create_database():
+    with app.app_context():
+        db.create_all()
+
+if __name__ == '__main__':
+    create_database()
+    app.run(debug=True)
+
 
 def preprocess_data(df):
     # Clean the price column
