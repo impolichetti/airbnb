@@ -53,10 +53,10 @@ def preprocess_data(df):
     df = df.dropna(subset=['price', 'model_year', 'milage', 'fuel_type', 'transmission'])
 
 
-    # One more time, fill any missing numerical values with the median, just in case
+    # One more time, fill any missing numerical values with the median, just in case.
     df['milage'] = df['milage'].fillna(df['milage'].median())
     df['model_year'] = df['model_year'].fillna(df['model_year'].median())
-    df['price'] = df['price'].fillna(df['price'].median())
+    df['price'] = df['price'].fillna(df['price'].median()) 
 
 
     # Fill missing categorical values (neighbourhood) with the most frequent value
