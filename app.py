@@ -106,25 +106,31 @@ def reload_data():
     cars_df = pd.read_csv(url)
 
     # Step 3: Clear the database
-    db.session.query(cars_df).delete()
+    db.session.query(CarListing).delete()
+    db.session.commit()
 
     # Step 4: Process data and insert it into the database
-    cars_df = cars_df[['price', 'brand', 'model_year', 'mileage', 'fuel_type', 'transmission']].dropna()
+    cars_df = cars_df[['price', 'brand', 'model_year', 'milage', 'fuel_type', 'transmission']].dropna()
 
     # Ensure 'price' is numeric
     cars_df['price'] = pd.to_numeric(cars_df['price'], errors='coerce')
 
     # Insert each row as a new record in the database
-    for _, row in cars_df.iterrows():
-    new_cars_df = CarListing(
+for _, row in cars_df.iterrows():
+    new_car = CarListing(
         price=row['price'],
         brand=row['brand'],
         model_year=int(row['model_year']),
-        mileage=row['mileage'],
+        milage=row['milage'],
         fuel_type=row['fuel_type'],
-        transmission=row['transmission']
+        transmission=row['transmission'],
+        ext_col="Unknown",  # Provide default values for missing columns
+        int_col="Unknown",
+        accident="Unknown",
+        clean_title=True
     )
-    db.session.add(new_cars_df)
+    db.session.add(new_car)
+db.session.commit()
 
     # Step 5: Preprocess and train model
     df, encoder = preprocess_data(used_cars)
@@ -139,7 +145,7 @@ def reload_data():
         'average_price': used_cars['price'].mean(),
         'min_price': used_cars['price'].min(),
         'max_price': used_cars['price'].max(),
-        'average_mileage': used_cars['mileage'].mean(),
+        'average_mileage': used_cars['milage'].mean(),
         'common_brand': used_cars['brand'].value_counts().idxmax(),
         'common_fuel': used_cars['fuel_type'].value_counts().idxmax(),
     }
@@ -151,22 +157,23 @@ def predict():
     Predict car prices
     ---
     parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            model_year:
-              type: integer
-            mileage:
-              type: integer
-            fuel_type:
-              type: string
-            transmission:
-              type: string
-            brand:
-            type: string
+  - name: body
+    in: body
+    required: true
+    schema:
+      type: object
+      properties:
+        model_year:
+          type: integer
+        milage:
+          type: integer
+        fuel_type:
+          type: string
+        transmission:
+          type: string
+        brand:
+          type: string
+
     responses:
       200:
         description: Predicted car prices
@@ -182,18 +189,18 @@ def predict():
     try:
         data = request.json
         model_year = pd.to_numeric(data.get('model_year'), errors='coerce')
-        mileage = pd.to_numeric(data.get('mileage'), errors='coerce')
+        mileage = pd.to_numeric(data.get('milage'), errors='coerce')
         fuel_type = data.get('fuel_type')
         transmission = data.get('transmission')
         brand = data.get('brand')
 
-        if None in [model_year, mileage, fuel_type, transmission, brand]:
+        if None in [model_year, milage, fuel_type, transmission, brand]:
             return jsonify({"error": "Missing or invalid required parameters"}), 400
         
         categorical_values = [[brand, fuel_type, transmission]]
         categorical_encoded = encoder.transform(categorical_values)
-        input_data = np.concatenate(([model_year, mileage], categorical_encoded[0])).reshape(1, -1)
-        predicted_price = model.predict(input_data)[0]
+        input_data = np.hstack(([model_year, mileage], categorical_encoded[0])).reshape(1, -1)
+        predicted_price = float(model.predict(input_data)[0])
 
         return jsonify({"predicted_price": predicted_price})
 
